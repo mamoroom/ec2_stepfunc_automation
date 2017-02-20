@@ -5,6 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "aws-sdk": "^2.14.0",
+    "here": "0.0.2",
     "moment-timezone": "^0.5.11"
   },
   "devDependencies": {},

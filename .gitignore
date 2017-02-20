@@ -1,3 +1,4 @@
 config.json
 __create_s3_dir
 node_modules
+.DS_Store

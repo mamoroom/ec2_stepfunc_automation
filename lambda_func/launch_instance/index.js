@@ -1,6 +1,9 @@
 var AWS = require('aws-sdk'); 
 AWS.config.region = 'us-east-1';
 var Moment = require('moment-timezone');
+var here = require('here').here;
+var util = require('util');
+
 var ec2 = new AWS.EC2();
 
 var LAUNCH_MAX_COUNT = 1;
@@ -8,7 +11,8 @@ var LAUNCH_MIN_COUNT = 1;
 var TIMESTAMP_ZONE_NAME = 'Asia/Tokyo';
 
 function main(event, context) {
-    Promise.resolve([event, context])
+    var timestamp =  Moment().tz(TIMESTAMP_ZONE_NAME).unix();
+    Promise.resolve([event, context, timestamp])
     .then(create_ec2_instance)
     .then(create_tags)
     .then(function() {
@@ -21,6 +25,7 @@ function main(event, context) {
 function create_ec2_instance(args) {
     var event = args[0];
     var context = args[1];
+    var timestamp = args[2];
 
     return new Promise(function(resolve, reject) {
         var params = {
@@ -31,26 +36,29 @@ function create_ec2_instance(args) {
             MinCount: LAUNCH_MIN_COUNT,
             SecurityGroupIds: event.resource.security_group_ids,
             SubnetId: event.resource.subnet_id,
-            BlockDeviceMappings: event.resource.external_device.params
+            IamInstanceProfile: event.resource.iam_role_arn,
+            BlockDeviceMappings: event.resource.external_device.params,
+            UserData: _create_user_data(event, timestamp)
         };
         // Create the instance
         ec2.runInstances(params, function(err, data) {
             if (err) {
                 reject("Could not create instance:" + err);
             }
-            resolve([event, context, data.Instances[0].InstanceId]);
+            resolve([event, context, data.Instances[0].InstanceId, timestamp]);
         });
     });
 }
 
+// todo timestampを渡す
 function create_tags(args) {
     var event = args[0];
     var context = args[1];
     var resource_id = args[2];
+    var timestamp = args[3];
 
     return new Promise(function(resolve, reject) {
        // Add tags to the instance
-        var timestamp = Moment().tz(TIMESTAMP_ZONE_NAME).unix();
         params = {
             Resources: [resource_id], 
             Tags: [
@@ -68,6 +76,26 @@ function create_tags(args) {
             resolve()
         });
     });
+}
+
+function _create_user_data(event, timestamp) {
+    resource.s3_bucket_name, event.project.name, event.exec_param.name, 
+    var user_data_format = here(/*
+        #!/bin/bash
+        su - ubuntu -c 'export S3_RESULT_PATH=%s'
+        su - ubuntu -c 'rm -fr /home/ubuntu/app && mkdir /home/ubuntu/app && cd /home/ubuntu/app'
+        su - ubuntu -c 'git clone %s project && cd project && git checkout %s'
+        cd script
+        pip install -r requirements.txt
+        su - ubuntu -c 'python %s %s %s'*/);
+    var user_data = util.format(user_data_format, 
+        's3://' + event.resource.s3_bucket_name + '/' + event.project.name + '/' + event.exec_param.name + '_' + timestamp,
+        event.project.branch_name,
+        event.exec_param.script_name,
+        event.exec_param.epoch,
+        event.exec_param.lr
+    )
+    return Buffer(user_data.unindent()).toString('base64');
 }
 
 /////on Lambda/////
@@ -88,5 +116,10 @@ var test_context = {
     }
 };
 
+/*
+var str = _create_user_data().unindent();
+console.log(util.format(str, 'hoge'));
+*/
 main(config, test_context)
+
 
