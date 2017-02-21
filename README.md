@@ -1,4 +1,4 @@
-# AWS-EC-STEPFUNC-AUTOMATION
+# AWS-EC2-STEPFUNC-AUTOMATION
 
 主に機械学習用のEC2インスタンス自動起動/停止スクリプト
 
