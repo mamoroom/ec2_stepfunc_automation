@@ -89,7 +89,7 @@ function _create_user_data(event) {
         su - ubuntu -c 'rm -fr /home/ubuntu/app && mkdir /home/ubuntu/app'
         su - ubuntu -c 'cd /home/ubuntu/app && git clone %s project && cd project && git checkout %s'
         cd /home/ubuntu/app/project/script && pip install -r requirements.txt
-        su - ubuntu -c 'cd /home/ubuntu/app/project/script && export S3_RESULT_PATH=%s && python %s %s %s'
+        su - ubuntu -c 'cd /home/ubuntu/app/project/script && export S3_RESULT_PATH=%s && python %s %s %s %s %s'
         */);
     var user_data = util.format(user_data_format.unindent(), 
         event.project.repository_url,
@@ -97,7 +97,9 @@ function _create_user_data(event) {
         's3://' + event.resource.s3_bucket_name + '/' + event.project.name + '/' + event.exec_param.name + '_' + event["step_func_result"]["timestamp"],
         event.exec_param.script_name,
         event.exec_param.epoch,
-        event.exec_param.lr
+        event.exec_param.lr,
+        event.exec_param.result_model_name,
+        event.exec_param.result_log_name
     );
     return Buffer(user_data).toString('base64');
 }
