@@ -40,6 +40,7 @@ exports.handler = function(event, context, callback) {
 };
 
 /////test/////
+/*
 var config = require('../../config')
 var test_context = {
     fail: function(msg) {
@@ -59,4 +60,5 @@ var callback = function(err, result) {
     }
 }
 config["step_func_result"]["instance_id"] = 'i-06f8fcbb571eb0c9a';
-//main(config, test_context, callback);
+main(config, test_context, callback);
+*/

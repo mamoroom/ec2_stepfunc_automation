@@ -106,10 +106,11 @@ function _create_user_data(event) {
 
 /////on Lambda/////
 exports.handler = function(event, context, callback) {
-    return main(event, context, callback)
+    return main(event, context, callback);
 };
 
 /////test/////
+/*
 var config = require('../../config')
 var test_context = {
     fail: function(msg) {
@@ -129,6 +130,7 @@ var callback = function(err, result) {
     }
 }
 
-//main(config, test_context, callback);
+main(config, test_context, callback);
+*/
 
 

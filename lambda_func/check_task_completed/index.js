@@ -6,7 +6,7 @@ function main(event, context, callback) {
     .then(check_result_exist)
     .then(function() {
         event["step_func_result"]["is_task_completed"] = true;
-        event["step_func_result"]["previous_nortify_msg"] = "Completed task. | " + e["step_func_result"]["instance_id"];
+        event["step_func_result"]["previous_nortify_msg"] = "Completed task. | " + event["step_func_result"]["instance_id"];
         callback(null, event);
     }).catch(function(msg) {
         console.log(msg);
@@ -57,6 +57,7 @@ exports.handler = function(event, context, callback) {
 };
 
 /////test/////
+/*
 var config = require('../../config')
 var test_context = {
     fail: function(msg) {
@@ -76,6 +77,6 @@ var callback = function(err, result) {
     }
 }
 
-//console.log(_create_user_data(config, "11111"));
-//config["step_func_result"]["timestamp"] = 11111;
-//main(config, test_context, callback);
+config["step_func_result"]["timestamp"] = 11111;
+main(config, test_context, callback);
+*/

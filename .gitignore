@@ -2,3 +2,8 @@ config.json
 __create_s3_dir
 node_modules
 .DS_Store
+script/data/output/*
+script/*.jpg
+script/*.log
+script/*.pkl
+*.zip
