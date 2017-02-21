@@ -10,22 +10,22 @@ var LAUNCH_MAX_COUNT = 1;
 var LAUNCH_MIN_COUNT = 1;
 var TIMESTAMP_ZONE_NAME = 'Asia/Tokyo';
 
-function main(event, context) {
-    var timestamp =  Moment().tz(TIMESTAMP_ZONE_NAME).unix();
-    Promise.resolve([event, context, timestamp])
+function main(event, context, callback) {
+    event["step_func_result"]["timestamp"] = Moment().tz(TIMESTAMP_ZONE_NAME).unix();
+    Promise.resolve([event, context])
     .then(create_ec2_instance)
     .then(create_tags)
-    .then(function() {
-        context.succeed("completed");
+    .then(function(e) {
+        callback(null, e);
     }).catch(function(msg) {
         context.fail(msg);
+        callback(msg, {});
     });
 }
 
 function create_ec2_instance(args) {
     var event = args[0];
     var context = args[1];
-    var timestamp = args[2];
 
     return new Promise(function(resolve, reject) {
         var params = {
@@ -38,14 +38,15 @@ function create_ec2_instance(args) {
             SubnetId: event.resource.subnet_id,
             IamInstanceProfile: event.resource.iam_role_arn,
             BlockDeviceMappings: event.resource.external_device.params,
-            UserData: _create_user_data(event, timestamp)
+            UserData: _create_user_data(event)
         };
         // Create the instance
         ec2.runInstances(params, function(err, data) {
             if (err) {
                 reject("Could not create instance:" + err);
             }
-            resolve([event, context, data.Instances[0].InstanceId, timestamp]);
+            event["step_func_result"]["instance_id"] = data.Instances[0].InstanceId;
+            resolve([event, context]);
         });
     });
 }
@@ -54,31 +55,28 @@ function create_ec2_instance(args) {
 function create_tags(args) {
     var event = args[0];
     var context = args[1];
-    var resource_id = args[2];
-    var timestamp = args[3];
 
     return new Promise(function(resolve, reject) {
        // Add tags to the instance
         params = {
-            Resources: [resource_id], 
+            Resources: [event["step_func_result"]["instance_id"]], 
             Tags: [
                 {
                     Key: 'Name',
-                    Value: event.project.name + "_" + event.exec_param.name + "_" + timestamp
+                    Value: event.project.name + "_" + event.exec_param.name + "_" + event["step_func_result"]["timestamp"] 
                 }
             ]
         };
         ec2.createTags(params, function(err) {
             if (err) {
-                console.log(err);
                 reject("Could not tag name to instance: " + err);
             }
-            resolve()
+            resolve(event)
         });
     });
 }
 
-function _create_user_data(event, timestamp) {
+function _create_user_data(event) {
     var user_data_format = here(/*
         #!/bin/bash
         su - ubuntu -c 'rm -fr /home/ubuntu/app && mkdir /home/ubuntu/app'
@@ -89,7 +87,7 @@ function _create_user_data(event, timestamp) {
     var user_data = util.format(user_data_format.unindent(), 
         event.project.repository_url,
         event.project.branch_name,
-        's3://' + event.resource.s3_bucket_name + '/' + event.project.name + '/' + event.exec_param.name + '_' + timestamp,
+        's3://' + event.resource.s3_bucket_name + '/' + event.project.name + '/' + event.exec_param.name + '_' + event["step_func_result"]["timestamp"],
         event.exec_param.script_name,
         event.exec_param.epoch,
         event.exec_param.lr
@@ -98,8 +96,8 @@ function _create_user_data(event, timestamp) {
 }
 
 /////on Lambda/////
-exports.handler = function(event, context) {
-    main(event, context)
+exports.handler = function(event, context, callback) {
+    return main(event, context, callback)
 };
 
 /////test/////
@@ -114,8 +112,14 @@ var test_context = {
         console.log(msg);
     }
 };
+var callback = function(err, result) {
+    if (err) {
+        console.error(err);
+    } else {
+        console.log(result);
+    }
+}
 
-//console.log(_create_user_data(config, "11111"));
-main(config, test_context)
+//main(config, test_context, callback);
 
 
