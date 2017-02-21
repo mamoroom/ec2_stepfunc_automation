@@ -14,7 +14,7 @@ i_height = args[2]
 
 now = datetime.datetime.now().strftime('%s')
 out_file_name = now+"_sample"+IMAGE_EXTENTION
-Image.open(INPUT_FILE_PATH).resize((int(i_width),int(i_height)).save(out_file_name)
+Image.open(INPUT_FILE_PATH).resize(int(i_width),int(i_height)).save(out_file_name)
 time.sleep(5)
 shell_result = os.system('sh ' + SCRIPT_PATH + ' ' + out_file_name + ' ' + out_file_name)
 if (shell_result) :
