@@ -79,23 +79,22 @@ function create_tags(args) {
 }
 
 function _create_user_data(event, timestamp) {
-    resource.s3_bucket_name, event.project.name, event.exec_param.name, 
     var user_data_format = here(/*
         #!/bin/bash
-        su - ubuntu -c 'export S3_RESULT_PATH=%s'
-        su - ubuntu -c 'rm -fr /home/ubuntu/app && mkdir /home/ubuntu/app && cd /home/ubuntu/app'
-        su - ubuntu -c 'git clone %s project && cd project && git checkout %s'
-        cd script
-        pip install -r requirements.txt
-        su - ubuntu -c 'python %s %s %s'*/);
-    var user_data = util.format(user_data_format, 
-        's3://' + event.resource.s3_bucket_name + '/' + event.project.name + '/' + event.exec_param.name + '_' + timestamp,
+        su - ubuntu -c 'rm -fr /home/ubuntu/app && mkdir /home/ubuntu/app'
+        su - ubuntu -c 'cd /home/ubuntu/app && git clone %s project && cd project && git checkout %s'
+        cd /home/ubuntu/app/project/script && pip install -r requirements.txt
+        su - ubuntu -c 'cd /home/ubuntu/app/project/script && export S3_RESULT_PATH=%s && python %s %s %s'
+        */);
+    var user_data = util.format(user_data_format.unindent(), 
+        event.project.repository_url,
         event.project.branch_name,
+        's3://' + event.resource.s3_bucket_name + '/' + event.project.name + '/' + event.exec_param.name + '_' + timestamp,
         event.exec_param.script_name,
         event.exec_param.epoch,
         event.exec_param.lr
-    )
-    return Buffer(user_data.unindent()).toString('base64');
+    );
+    return Buffer(user_data).toString('base64');
 }
 
 /////on Lambda/////
@@ -116,10 +115,7 @@ var test_context = {
     }
 };
 
-/*
-var str = _create_user_data().unindent();
-console.log(util.format(str, 'hoge'));
-*/
+//console.log(_create_user_data(config, "11111"));
 main(config, test_context)
 
 
