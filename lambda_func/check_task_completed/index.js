@@ -6,6 +6,7 @@ function main(event, context, callback) {
     .then(check_result_exist)
     .then(function() {
         event["step_func_result"]["is_task_completed"] = true;
+        event["step_func_result"]["previous_nortify_msg"] = "Completed task. | " + e["step_func_result"]["instance_id"];
         callback(null, event);
     }).catch(function(msg) {
         console.log(msg);

@@ -16,6 +16,7 @@ function main(event, context, callback) {
     .then(create_ec2_instance)
     .then(create_tags)
     .then(function(e) {
+        e["step_func_result"]["previous_nortify_msg"] = "Succeed to create an instance | " + e["step_func_result"]["instance_id"];
         callback(null, e);
     }).catch(function(msg) {
         context.fail(msg);
@@ -36,14 +37,20 @@ function create_ec2_instance(args) {
             MinCount: LAUNCH_MIN_COUNT,
             SecurityGroupIds: event.resource.security_group_ids,
             SubnetId: event.resource.subnet_id,
-            IamInstanceProfile: event.resource.iam_role_arn,
+            IamInstanceProfile: {
+                Arn: event.resource.iam_role_arn
+            },
             BlockDeviceMappings: event.resource.external_device.params,
-            UserData: _create_user_data(event)
+            UserData: _create_user_data(event),
+            DryRun: false
         };
         // Create the instance
         ec2.runInstances(params, function(err, data) {
             if (err) {
                 reject("Could not create instance:" + err);
+            }
+            if (params.DryRun) {
+                console.log(data);
             }
             event["step_func_result"]["instance_id"] = data.Instances[0].InstanceId;
             resolve([event, context]);
@@ -58,7 +65,7 @@ function create_tags(args) {
 
     return new Promise(function(resolve, reject) {
        // Add tags to the instance
-        params = {
+        var params = {
             Resources: [event["step_func_result"]["instance_id"]], 
             Tags: [
                 {
